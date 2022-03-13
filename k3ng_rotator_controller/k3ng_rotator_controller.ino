@@ -1099,7 +1099,11 @@
 #define CODE_VERSION "2022.02.20.01"
 
 
-#include <avr/pgmspace.h>
+#if defined(ARDUINO_ARCH_ESP32)    // JA7FKF INSERT
+  #include <pgmspace.h>            // JA7FKF INSERT
+#else                              // JA7FKF INSERT
+  #include <avr/pgmspace.h>
+#endif                             // JA7FKF INSERT
 #include <EEPROM.h>
 #include <math.h>
 
@@ -2090,6 +2094,36 @@ void loop() {
 
 ----------------------------------------------------------------------------------------------------- */
 
+#if defined(ARDUINO_ARCH_ESP32)  // JA7FKF INSERT
+#define LEDC_CHANNEL 0
+#define LEDC_BASE_FREQ 5000
+#define LEDC_TIMER_BIT 13
+
+void noTone(int pin) {
+  ledcWriteTone(LEDC_CHANNEL, 0.0) ;
+}
+  
+void tone(int pin, int frequency) {
+  ledcSetup(LEDC_CHANNEL, LEDC_BASE_FREQ, LEDC_TIMER_BIT) ;
+  ledcAttachPin(pin, LEDC_CHANNEL) ;
+  ledcWriteTone(LEDC_CHANNEL, frequency) ;
+}
+
+void tone(int pin, int frequency, int duration) {
+  ledcSetup(LEDC_CHANNEL, LEDC_BASE_FREQ, LEDC_TIMER_BIT) ;
+  ledcAttachPin(pin, LEDC_CHANNEL) ;
+  ledcWriteTone(LEDC_CHANNEL, frequency);
+  delay(duration);
+  noTone; 
+}
+
+void analogWrite (int pin, int value) {
+  ledcSetup(LEDC_CHANNEL, LEDC_BASE_FREQ, LEDC_TIMER_BIT) ;
+  ledcAttachPin(pin, LEDC_CHANNEL) ;
+  ledcWriteTone(LEDC_CHANNEL, value) ;
+}
+#endif    //ARDUINO_ARCH_ESP32      // JA7FKF
+
 #if defined(pin_status_led)
   void service_status_led(){
 
@@ -2713,7 +2747,8 @@ void check_az_preset_potentiometer() {
       if (check_pot) {
         pot_read = analogReadEnhanced(az_preset_pot);
         new_pot_azimuth = map(pot_read, AZ_PRESET_POT_FULL_CW, AZ_PRESET_POT_FULL_CCW, AZ_PRESET_POT_FULL_CW_MAP, AZ_PRESET_POT_FULL_CCW_MAP);
-        if ((abs(last_pot_read - pot_read) > 4) && (abs(new_pot_azimuth - raw_azimuth) > AZIMUTH_TOLERANCE)) {
+//        if ((abs(last_pot_read - pot_read) > 4) && (abs(new_pot_azimuth - raw_azimuth) > AZIMUTH_TOLERANCE)) {    //JA7FKF DELETE
+        if ((abs(last_pot_read - pot_read) > AZ_PRESET_POT_CHANGED_WAITING) && (abs(new_pot_azimuth - raw_azimuth) > AZIMUTH_TOLERANCE)) {    // JA7FKF INSERT
           pot_changed_waiting = 1;
           #ifdef DEBUG_AZ_PRESET_POT
           if (debug_mode) {
@@ -2726,7 +2761,8 @@ void check_az_preset_potentiometer() {
       last_pot_check_time = millis();
     } else {  // we're in pot change mode
       pot_read = analogReadEnhanced(az_preset_pot);
-      if (abs(pot_read - last_pot_read) > 3) {  // if the pot has changed, reset the timer
+//      if (abs(pot_read - last_pot_read) > 3) {  // if the pot has changed, reset the timer  // JA7FKF DELETE
+      if (abs(pot_read - last_pot_read) > AZ_PRESET_POT_CHANGED) {  // if the pot has changed, reset the timer  // JA7FKF INSERT
         last_pot_check_time = millis();
         last_pot_read = pot_read;
       } else {
@@ -9332,7 +9368,8 @@ void output_debug(){
         }
         debug.println(F("DIRTY"));
 
-        #if !defined(TEENSYDUINO)
+//        #if !defined(TEENSYDUINO)
+        #if !defined(TEENSYDUINO) && !defined(ARDUINO_ARCH_ESP32)   // JA7FKF INSERT
           void * HP = malloc(4);
           if (HP) {free(HP);}
           unsigned long free = (unsigned long)SP - (unsigned long)HP;
@@ -13564,6 +13601,17 @@ byte get_analog_pin(byte pin_number){
 
   byte return_output = 0;
 
+#if defined(ARDUINO_ARCH_ESP32)         // JA7FKF INSERT
+  switch (pin_number) {                 // JA7FKF INSERT
+    case 0: return_output = A0; break;  // JA7FKF INSERT
+    case 3: return_output = A3; break;  // JA7FKF INSERT
+    case 4: return_output = A4; break;  // JA7FKF INSERT
+    case 5: return_output = A5; break;  // JA7FKF INSERT
+    case 6: return_output = A6; break;  // JA7FKF INSERT
+    case 7: return_output = A7; break;  // JA7FKF INSERT
+  }                                     // JA7FKF INSERT
+  return return_output;                 // JA7FKF INSERT
+#else                                   // JA7FKF INSERT
   switch (pin_number) {
     case 0: return_output = A0; break;
     case 1: return_output = A1; break;
@@ -13575,6 +13623,7 @@ byte get_analog_pin(byte pin_number){
   }
 
   return return_output;
+#endif   // ARDUINO_ARCH_ESP32                                //  JA7FKF INSERT
 
 }
 //#endif // FEATURE_REMOTE_UNIT_SLAVE
