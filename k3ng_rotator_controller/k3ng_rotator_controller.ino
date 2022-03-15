@@ -9368,7 +9368,7 @@ void output_debug(){
         }
         debug.println(F("DIRTY"));
 
-//        #if !defined(TEENSYDUINO)
+//        #if !defined(TEENSYDUINO)                         // JA7FKF DELETE
         #if !defined(TEENSYDUINO) && !defined(ARDUINO_ARCH_ESP32)   // JA7FKF INSERT
           void * HP = malloc(4);
           if (HP) {free(HP);}
